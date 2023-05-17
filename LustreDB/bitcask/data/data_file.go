@@ -2,6 +2,8 @@ package data
 
 import "LustreDB/bitcask/io"
 
+const DataFileNameSuffix = ".data"
+
 // DataFile 数据文件
 type DataFile struct {
 
@@ -18,6 +20,10 @@ type DataFile struct {
 // OpenDataFile 打开新的数据文件
 func OpenDataFile(dirPath string, fileId uint32) (*DataFile, error) {
 	return nil, nil
+}
+
+func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
+	return nil, 0, nil
 }
 
 func (df *DataFile) Write(buf []byte) error {
