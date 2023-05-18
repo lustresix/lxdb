@@ -3,11 +3,7 @@ package bitcask
 import (
 	"LustreDB/bitcask/data"
 	"LustreDB/bitcask/index"
-	"io"
 	"os"
-	"sort"
-	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -16,7 +12,7 @@ type DB struct {
 	// 配置项
 	options Options
 
-	// 锁
+	// 读写锁
 	lo *sync.RWMutex
 
 	// 文件 id，只能在加载索引的时候使用，不能在其他地方更新或使用
@@ -71,90 +67,39 @@ func Open(options Options) (*DB, error) {
 	return db, nil
 }
 
-// 从磁盘中加载数据文件
-func (db *DB) loadDataFiles() error {
+// Delete 根据 key 来删除对应的数据
+func (db *DB) Delete(key []byte) error {
+	// 判断 key 的有效性
+	if len(key) == 0 {
+		return ErrKeyIsEmpty
+	}
 
-	dir, err := os.ReadDir(db.options.DirPath)
+	// 检查 key 是否存在
+	get := db.index.Get(key)
+	if get == nil {
+		return ErrKeyNotFound
+	}
+
+	// 构造 LogRecord 文件 标记为这个是被删除的数据
+	logRecord := &data.LogRecord{
+		Key:  key,
+		Type: data.LogRecordDelete,
+	}
+
+	// 把数据追加写入到文档中
+	_, err := db.appendLogRecord(logRecord)
 	if err != nil {
 		return err
 	}
-	var fileIds []int
-	// 遍历目录中的文件，找到所有以 .data 结尾的文件
-	for _, entry := range dir {
-		if strings.HasSuffix(entry.Name(), data.DataFileNameSuffix) {
-			// 自动生成的数据是比如说 0001.data
-			// 切割后取 0001 为自动生成的文件名
-			// 如果这个已经不是数字了，那么就判定为文件被损坏
-			split := strings.Split(entry.Name(), ".")
-			atoi, err := strconv.Atoi(split[0])
-			if err != nil {
-				return ErrDataDirectoryCorrupted
-			}
-			fileIds = append(fileIds, atoi)
-		}
-	}
 
-	// 对文件 id 进行排序，从小到大依次加载
-	sort.Ints(fileIds)
-
-	// 遍历每个文件 id， 打开对应的数据文件
-	for i, fid := range fileIds {
-		file, err := data.OpenDataFile(db.options.DirPath, uint32(fid))
-		if err != nil {
-			return err
-		}
-		// 如果这是最后一个文件，代表他是活跃的文件
-		if i == len(fileIds)-1 {
-			db.activeFiles = file
-		} else {
-			db.olderFiles[uint32(fid)] = file
-		}
+	// 在内存索引中删除 key
+	b := db.index.Delete(key)
+	if !b {
+		return ErrKeyNotFound
 	}
 
 	return nil
 
-}
-
-// 从数据文件中加载索引
-// 遍历文件中的记录，并更新到内部索引
-func (db *DB) loadIndexFromDataFiles() error {
-	// 如果是空的数据库就返回
-	if len(db.fileIds) == 0 {
-		return nil
-	}
-
-	// 遍历所有文件id，处理文件中的记录
-	for _, fileId := range db.fileIds {
-		var id = uint32(fileId)
-		var dataFile *data.DataFile
-		if id == db.activeFiles.FileId {
-			dataFile = db.activeFiles
-		} else {
-			dataFile = db.olderFiles[id]
-		}
-
-		var offset int64 = 0
-		for {
-			read, size, err := dataFile.Read(offset)
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return err
-			}
-
-			pos := data.LogRecordPos{Fid: id, Offset: offset}
-
-			if read.Type == data.LogRecordDelete {
-				db.index.Delete(read.Key)
-			} else {
-				db.index.Put(read.Key, &pos)
-			}
-
-			offset += size
-		}
-	}
-	return nil
 }
 
 // Put 写入 Key/Value 数据， Key 不为空
@@ -282,26 +227,4 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 		Offset: off,
 	}
 	return &pos, nil
-}
-
-// setActiveData 初始化活跃的文件
-// 在访问此方法必须要持有互斥锁
-func (db *DB) setActiveData() error {
-	var initialFileId uint32 = 0
-	if db.activeFiles != nil {
-		// 如果当前活跃文件id不为空，那么新的文件的id就是原来的+1
-		initialFileId = db.activeFiles.FileId + 1
-	}
-
-	// 打开新的数据文件
-	file, err := data.OpenDataFile(db.options.DirPath, initialFileId)
-	if err != nil {
-		return err
-	}
-	db.activeFiles = file
-	return nil
-}
-
-func checkOptions(options Options) error {
-	return nil
 }
