@@ -1,5 +1,7 @@
 package data
 
+import "encoding/binary"
+
 type LogRecordType = byte
 
 const (
@@ -7,11 +9,21 @@ const (
 	LogRecordDelete
 )
 
+// crc = 4  type = 1 keySize = 5 valueSize = 5 total = 15
+const maxLogRecordHeaderSize = binary.MaxVarintLen32*2 + 5
+
 // LogRecord 写入到数据文件的记录
 type LogRecord struct {
 	Key   []byte
 	Value []byte
 	Type  LogRecordType
+}
+
+type logRecordHeader struct {
+	crc        uint32
+	recordType LogRecordType
+	keySize    uint32
+	valueSize  uint32
 }
 
 // LogRecordPos 数据内存索引，描述数据在磁盘上的位置

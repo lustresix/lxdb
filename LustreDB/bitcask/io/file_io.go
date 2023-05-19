@@ -18,9 +18,12 @@ func NewFileIOManager(fileName string) (*FileIO, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &FileIO{fo: file}, err
 
+	return &FileIO{fo: file}, err
 }
+
+// 封装系统 io 方便后续调用不同的 io 类型
+// 如接入 mmap 等
 
 func (f *FileIO) Read(b []byte, offset int64) (int, error) {
 	return f.fo.ReadAt(b, offset)

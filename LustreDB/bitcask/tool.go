@@ -40,7 +40,7 @@ func (db *DB) loadDataFiles() error {
 	// 遍历目录中的文件，找到所有以 .data 结尾的文件
 	for _, entry := range dir {
 		if strings.HasSuffix(entry.Name(), data.DataFileNameSuffix) {
-			// 自动生成的数据是比如说 0001.data
+			// 自动生成的数据是比如说 0001.lx
 			// 切割后取 0001 为自动生成的文件名
 			// 如果这个已经不是数字了，那么就判定为文件被损坏
 			split := strings.Split(entry.Name(), ".")
