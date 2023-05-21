@@ -49,13 +49,13 @@ func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
 		return nil, 0, err
 	}
 
-	var haeaderBytes int64 = maxLogRecordHeaderSize
+	var headerBytes int64 = maxLogRecordHeaderSize
 	if offset+maxLogRecordHeaderSize > size {
-		haeaderBytes = size - offset
+		headerBytes = size - offset
 	}
 
 	// 读取 Hear 部分的数据
-	b, err := df.readNBytes(haeaderBytes, offset)
+	b, err := df.readNBytes(headerBytes, offset)
 	if err != nil {
 		return nil, 0, err
 	}
