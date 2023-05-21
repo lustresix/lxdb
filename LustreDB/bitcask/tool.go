@@ -2,6 +2,7 @@ package bitcask
 
 import (
 	"LustreDB/bitcask/data"
+	"LustreDB/bitcask/utils"
 	"errors"
 	"io"
 	"os"
@@ -46,7 +47,7 @@ func (db *DB) loadDataFiles() error {
 			split := strings.Split(entry.Name(), ".")
 			atoi, err := strconv.Atoi(split[0])
 			if err != nil {
-				return ErrDataDirectoryCorrupted
+				return utils.ErrDataDirectoryCorrupted
 			}
 			fileIds = append(fileIds, atoi)
 		}

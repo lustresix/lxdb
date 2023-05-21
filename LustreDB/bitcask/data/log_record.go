@@ -41,3 +41,11 @@ type LogRecordPos struct {
 func EncodeLogRecord(LogRecord *LogRecord) ([]byte, int64) {
 	return nil, 0
 }
+
+func decodeLogRecordHeader(buf []byte) (*logRecordHeader, int64) {
+	return nil, 0
+}
+
+func getLogRecordCrc(log *LogRecord, header []byte) uint32 {
+	return 0
+}

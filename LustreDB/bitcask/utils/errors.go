@@ -1,4 +1,4 @@
-package bitcask
+package utils
 
 import "errors"
 
@@ -12,4 +12,6 @@ var (
 	ErrDataFileNotFound = errors.New("cannot found data file")
 
 	ErrDataDirectoryCorrupted = errors.New("the database directory maybe corrupted")
+
+	ErrorIncorrectCrc = errors.New("CRC does not pass")
 )

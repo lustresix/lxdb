@@ -3,6 +3,7 @@ package bitcask
 import (
 	"LustreDB/bitcask/data"
 	"LustreDB/bitcask/index"
+	"LustreDB/bitcask/utils"
 	"os"
 	"sync"
 )
@@ -71,13 +72,13 @@ func Open(options Options) (*DB, error) {
 func (db *DB) Delete(key []byte) error {
 	// 判断 key 的有效性
 	if len(key) == 0 {
-		return ErrKeyIsEmpty
+		return utils.ErrKeyIsEmpty
 	}
 
 	// 检查 key 是否存在
 	get := db.index.Get(key)
 	if get == nil {
-		return ErrKeyNotFound
+		return utils.ErrKeyNotFound
 	}
 
 	// 构造 LogRecord 文件 标记为这个是被删除的数据
@@ -95,7 +96,7 @@ func (db *DB) Delete(key []byte) error {
 	// 在内存索引中删除 key
 	b := db.index.Delete(key)
 	if !b {
-		return ErrKeyNotFound
+		return utils.ErrKeyNotFound
 	}
 
 	return nil
@@ -106,7 +107,7 @@ func (db *DB) Delete(key []byte) error {
 func (db *DB) Put(key []byte, value []byte) error {
 	// 判断 key 是否有效
 	if len(key) == 0 {
-		return ErrKeyIsEmpty
+		return utils.ErrKeyIsEmpty
 	}
 
 	// 构造 LogRecord 结构体
@@ -124,7 +125,7 @@ func (db *DB) Put(key []byte, value []byte) error {
 	// 更新索引
 	put := db.index.Put(key, logRecord)
 	if put {
-		return ErrIndexUpdateFailed
+		return utils.ErrIndexUpdateFailed
 	}
 
 	return nil
@@ -137,14 +138,14 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 
 	// 判断 key 是否有效
 	if len(key) == 0 {
-		return nil, ErrKeyIsEmpty
+		return nil, utils.ErrKeyIsEmpty
 	}
 
 	// 从内存的数据结构中取出 key 对应索引的位置信息
 	get := db.index.Get(key)
 	// 如果找不到说明 key 不存在
 	if get == nil {
-		return nil, ErrKeyNotFound
+		return nil, utils.ErrKeyNotFound
 	}
 
 	// 根据文件的 id 找到数据文件,如果活跃文件里没有，就从旧的数据文件里面找
@@ -156,7 +157,7 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	}
 
 	if dataFile == nil {
-		return nil, ErrDataFileNotFound
+		return nil, utils.ErrDataFileNotFound
 	}
 
 	// 根据偏移量读取数据
@@ -167,7 +168,7 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 
 	// 判断此条数据是否有被删除
 	if read.Type == data.LogRecordDelete {
-		return nil, ErrDataFileNotFound
+		return nil, utils.ErrDataFileNotFound
 	}
 	return read.Value, nil
 }
