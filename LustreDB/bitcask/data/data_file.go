@@ -3,6 +3,7 @@ package data
 import (
 	"LustreDB/bitcask/io"
 	"LustreDB/bitcask/utils"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	io2 "io"
@@ -54,20 +55,22 @@ func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
 		headerBytes = size - offset
 	}
 
-	// 读取 Hear 部分的数据
+	// 读取 Header 部分的数据
 	b, err := df.readNBytes(headerBytes, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// 解码
-	header, h := decodeLogRecordHeader(b)
+	header, h := DecodeLogRecordHeader(b)
+
 	if header == nil {
-		return nil, 0, io2.EOF
+		return nil, 0, errors.New("1EOF")
 	}
+
 	// 这里是如果读到了文件的末尾那么返回一个 EOF 错误
 	if header.crc == 0 && header.keySize == 0 && header.valueSize == 0 {
-		return nil, 0, err
+		return nil, 0, io2.EOF
 	}
 
 	// 获取 key 和 value 的长度
@@ -80,16 +83,16 @@ func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
 
 	// 如果 key 或者 value 存在值，那么解码获取实际值
 	if keySize > 0 || valueSize > 0 {
-		bytes, err := df.readNBytes(keySize+valueSize, offset+recordSize)
+
+		bytes, err := df.readNBytes(keySize+valueSize, offset+h)
 		if err != nil {
 			return nil, 0, err
 		}
-
 		record.Key = bytes[:keySize]
 		record.Value = bytes[keySize:]
 
 		// 校验 crc 是否正确
-		crc := getLogRecordCrc(record, b[crc32.Size:recordSize])
+		crc := GetLogRecordCrc(record, b[crc32.Size:h])
 		if crc != header.crc {
 			return nil, 0, utils.ErrorIncorrectCrc
 		}

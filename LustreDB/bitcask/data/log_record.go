@@ -22,7 +22,7 @@ type LogRecord struct {
 	Type  LogRecordType
 }
 
-type logRecordHeader struct {
+type LogRecordHeader struct {
 	crc        uint32
 	recordType LogRecordType
 	keySize    uint32
@@ -51,6 +51,7 @@ func EncodeLogRecord(LogRecord *LogRecord) ([]byte, int64) {
 	// keySize 和 valueSize 为变长 以此来节省空间
 	// 写入 key 的长度
 	index += binary.PutVarint(bytes[index:], int64(len(LogRecord.Key)))
+
 	// 写入 value 的长度
 	index += binary.PutVarint(bytes[index:], int64(len(LogRecord.Value)))
 
@@ -59,10 +60,11 @@ func EncodeLogRecord(LogRecord *LogRecord) ([]byte, int64) {
 
 	// 返回的数据
 	finalByte := make([]byte, size)
+
 	// 将数据复制到最终数据里
 	copy(finalByte[:index], bytes[:index])
 	copy(finalByte[index:], LogRecord.Key)
-	copy(finalByte[index+len(LogRecord.Value):], LogRecord.Value)
+	copy(finalByte[index+len(LogRecord.Key):], LogRecord.Value)
 
 	// 编码
 	crc := crc32.ChecksumIEEE(finalByte[4:])
@@ -71,30 +73,33 @@ func EncodeLogRecord(LogRecord *LogRecord) ([]byte, int64) {
 	return finalByte, int64(size)
 }
 
-// 解码 返回值 头部信息 头部长度
-func decodeLogRecordHeader(buf []byte) (*logRecordHeader, int64) {
+// DecodeLogRecordHeader 解码 返回值 头部信息 头部长度
+func DecodeLogRecordHeader(buf []byte) (*LogRecordHeader, int64) {
 	// 如果比 crc + type 还小那么就有问题
 	if len(buf) < 5 {
 		return nil, 0
 	}
 
-	header := &logRecordHeader{
+	header := &LogRecordHeader{
 		crc:        binary.LittleEndian.Uint32(buf[:4]),
 		recordType: buf[4],
 	}
 
 	var index = 5
+
 	kSize, n := binary.Varint(buf[index:])
 	header.keySize = uint32(kSize)
 	index += n
+
 	vSize, n := binary.Varint(buf[index:])
 	header.valueSize = uint32(vSize)
+	index += n
 
 	return header, int64(index)
 }
 
-// 校验 crc
-func getLogRecordCrc(log *LogRecord, header []byte) uint32 {
+// GetLogRecordCrc 校验 crc
+func GetLogRecordCrc(log *LogRecord, header []byte) uint32 {
 	if log == nil {
 		return 0
 	}

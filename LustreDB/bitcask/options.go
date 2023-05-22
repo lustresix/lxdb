@@ -1,6 +1,9 @@
 package bitcask
 
-import "LustreDB/bitcask/index"
+import (
+	"LustreDB/bitcask/index"
+	"os"
+)
 
 // Options 用户可选的配置项
 type Options struct {
@@ -15,4 +18,12 @@ type Options struct {
 
 	// 索引类型
 	IndexType index.IndexerType
+}
+
+var DefaultOptions = Options{
+	DirPath: os.TempDir(),
+	// 256MB
+	DataFileSize: 256 * 1024 * 1024,
+	SyncWrites:   false,
+	IndexType:    index.Btree,
 }

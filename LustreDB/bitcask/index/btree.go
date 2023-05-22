@@ -33,8 +33,8 @@ func (bt *BTree) Put(key []byte, pos *data.LogRecordPos) bool {
 	}
 	// Lock before storage
 	bt.lock.Lock()
+	defer bt.lock.Unlock()
 	bt.tree.ReplaceOrInsert(&it)
-	bt.lock.Unlock()
 	return true
 }
 

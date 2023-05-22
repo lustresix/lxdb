@@ -39,7 +39,7 @@ func Open(options Options) (*DB, error) {
 	// 目录是否存在，如果目录不存在则创建
 	_, err = os.Stat(options.DirPath)
 	if os.IsNotExist(err) {
-		err := os.Mkdir(options.DirPath, os.ModePerm)
+		err := os.MkdirAll(options.DirPath, os.ModePerm)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +124,7 @@ func (db *DB) Put(key []byte, value []byte) error {
 
 	// 更新索引
 	put := db.index.Put(key, logRecord)
-	if put {
+	if !put {
 		return utils.ErrIndexUpdateFailed
 	}
 
@@ -223,9 +223,9 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 	// 数据的偏移地址
 	off := db.activeFiles.WriteOff
 
-	pos := data.LogRecordPos{
+	pos := &data.LogRecordPos{
 		Fid:    db.activeFiles.FileId,
 		Offset: off,
 	}
-	return &pos, nil
+	return pos, nil
 }
