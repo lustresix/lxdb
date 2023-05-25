@@ -55,6 +55,8 @@ func (db *DB) loadDataFiles() error {
 
 	// 对文件 id 进行排序，从小到大依次加载
 	sort.Ints(fileIds)
+	// 啊啊啊为什么
+	db.fileIds = fileIds
 
 	// 遍历每个文件 id， 打开对应的数据文件
 	for i, fid := range fileIds {
@@ -102,13 +104,13 @@ func (db *DB) loadIndexFromDataFiles() error {
 				return err
 			}
 
-			pos := data.LogRecordPos{Fid: id, Offset: offset}
+			pos := &data.LogRecordPos{Fid: id, Offset: offset}
 
 			// 如果是删除的类型就从索引当中删除
 			if read.Type == data.LogRecordDelete {
 				db.index.Delete(read.Key)
 			} else {
-				db.index.Put(read.Key, &pos)
+				db.index.Put(read.Key, pos)
 			}
 			// 读取之后偏移数据量的长度
 			offset += size

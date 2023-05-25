@@ -12,7 +12,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//
+
 	err = open.Put([]byte("hello1"), []byte("world1"))
 	if err != nil {
 		panic(err)
@@ -22,11 +22,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Print("val = ", string(get))
 
-	//err = open.Delete([]byte("hello"))
-	//if err != nil {
-	//	panic(err)
-	//}
+	err = open.Delete([]byte("hello"))
+	if err != nil {
+		panic(err)
+	}
 }

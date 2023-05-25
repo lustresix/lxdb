@@ -27,28 +27,28 @@ func NewBtree() *BTree {
 // Put 向索引中存储 key 对应的数据位置的信息
 // stores information about the data location corresponding to the key in the index
 func (bt *BTree) Put(key []byte, pos *data.LogRecordPos) bool {
-	it := Item{
+	it := &Item{
 		key: key,
 		pos: pos,
 	}
 	// Lock before storage
 	bt.lock.Lock()
 	defer bt.lock.Unlock()
-	bt.tree.ReplaceOrInsert(&it)
+	bt.tree.ReplaceOrInsert(it)
 	return true
 }
 
 // Get 根据 key 值取出对应的索引信息
 // retrieves the corresponding index information based on the key value
 func (bt *BTree) Get(key []byte) *data.LogRecordPos {
-	it := Item{
+	it := &Item{
 		key: key,
 	}
-	get := bt.tree.Get(&it)
-	if get != nil {
-		return get.(*Item).pos
+	get := bt.tree.Get(it)
+	if get == nil {
+		return nil
 	}
-	return nil
+	return get.(*Item).pos
 }
 
 // Delete 根据 key 值删除对应的索引

@@ -19,7 +19,7 @@ func NewFileIOManager(fileName string) (*FileIO, error) {
 		return nil, err
 	}
 
-	return &FileIO{fo: file}, err
+	return &FileIO{fo: file}, nil
 }
 
 // 封装系统 io 方便后续调用不同的 io 类型

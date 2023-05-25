@@ -3,7 +3,6 @@ package data
 import (
 	"LustreDB/bitcask/io"
 	"LustreDB/bitcask/utils"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	io2 "io"
@@ -65,7 +64,7 @@ func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
 	header, h := DecodeLogRecordHeader(b)
 
 	if header == nil {
-		return nil, 0, errors.New("1EOF")
+		return nil, 0, io2.EOF
 	}
 
 	// 这里是如果读到了文件的末尾那么返回一个 EOF 错误
@@ -90,25 +89,21 @@ func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
 		}
 		record.Key = bytes[:keySize]
 		record.Value = bytes[keySize:]
-
-		// 校验 crc 是否正确
-		crc := GetLogRecordCrc(record, b[crc32.Size:h])
-		if crc != header.crc {
-			return nil, 0, utils.ErrorIncorrectCrc
-		}
-
-		return record, recordSize, nil
 	}
-
-	return nil, 0, nil
+	// 校验 crc 是否正确
+	crc := GetLogRecordCrc(record, b[crc32.Size:h])
+	if crc != header.crc {
+		return nil, 0, utils.ErrorIncorrectCrc
+	}
+	return record, recordSize, nil
 }
 
 func (df *DataFile) Write(buf []byte) error {
-	write, err := df.IOManager.Write(buf)
+	n, err := df.IOManager.Write(buf)
 	if err != nil {
 		return err
 	}
-	df.WriteOff += int64(write)
+	df.WriteOff += int64(n)
 	return nil
 }
 

@@ -111,13 +111,13 @@ func (db *DB) Put(key []byte, value []byte) error {
 	}
 
 	// 构造 LogRecord 结构体
-	record := data.LogRecord{
+	record := &data.LogRecord{
 		Key:   key,
 		Value: value,
 		Type:  data.LogRecordNormal,
 	}
 	// 追加写入到当前活跃的数据库中
-	logRecord, err := db.appendLogRecord(&record)
+	logRecord, err := db.appendLogRecord(record)
 	if err != nil {
 		return err
 	}
@@ -207,8 +207,12 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 		}
 	}
 
+	// 数据的偏移地址
+	off := db.activeFiles.WriteOff
+
 	// 写入数据
 	err := db.activeFiles.Write(record)
+
 	if err != nil {
 		return nil, err
 	}
@@ -220,12 +224,11 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 			return nil, err
 		}
 	}
-	// 数据的偏移地址
-	off := db.activeFiles.WriteOff
 
 	pos := &data.LogRecordPos{
 		Fid:    db.activeFiles.FileId,
 		Offset: off,
 	}
+
 	return pos, nil
 }
