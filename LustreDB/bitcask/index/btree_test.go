@@ -44,3 +44,14 @@ func TestBTree_Get(t *testing.T) {
 	get1 := bt.Get([]byte("lex"))
 	t.Log(get1)
 }
+
+func TestBtreeIterator_Close(t *testing.T) {
+	bt := NewBtree()
+	_ = bt.Put([]byte("code"), &data.LogRecordPos{
+		Fid:    1,
+		Offset: 100,
+	})
+
+	iterator := bt.Iterator(false)
+	assert.True(t, iterator.Valid())
+}

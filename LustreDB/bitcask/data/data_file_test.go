@@ -37,10 +37,20 @@ func TestDataFile_Close(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, file)
 
+	err = file.Write([]byte("aaa"))
+	assert.Nil(t, err)
 	err = file.Close()
 	assert.Nil(t, err)
 }
 
 func TestDataFile_Read(t *testing.T) {
+	file, err := OpenDataFile(os.TempDir(), 0)
+	assert.Nil(t, err)
+	assert.NotNil(t, file)
 
+	err = file.Write([]byte("aaa"))
+	assert.Nil(t, err)
+
+	err = file.Sync()
+	assert.Nil(t, err)
 }

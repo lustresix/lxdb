@@ -147,7 +147,11 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	if get == nil {
 		return nil, utils.ErrKeyNotFound
 	}
+	value, err := db.getValue(get)
+	return value, err
+}
 
+func (db *DB) getValue(get *data.LogRecordPos) ([]byte, error) {
 	// 根据文件的 id 找到数据文件,如果活跃文件里没有，就从旧的数据文件里面找
 	var dataFile *data.DataFile
 	if db.activeFiles.FileId == get.Fid {
