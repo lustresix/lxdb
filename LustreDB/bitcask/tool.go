@@ -84,6 +84,24 @@ func (db *DB) loadIndexFromDataFiles() error {
 		return nil
 	}
 
+	updateIndex := func(key []byte, typ data.LogRecordType, pos *data.LogRecordPos) {
+		var ok bool
+		// 如果是删除的类型就从索引当中删除
+		if typ == data.LogRecordDelete {
+			ok = db.index.Delete(key)
+		} else {
+			ok = db.index.Put(key, pos)
+		}
+
+		if !ok {
+			panic("fail to update at start")
+		}
+	}
+
+	// 暂存事务的数据
+	transactionRecords := make(map[uint64][]*data.TransactionRecord)
+	var currentSeqNo = nonTransactionSeq
+
 	// 遍历所有文件id，处理文件中的记录
 	for i, fileId := range db.fileIds {
 		var id = uint32(fileId)
@@ -104,14 +122,37 @@ func (db *DB) loadIndexFromDataFiles() error {
 				return err
 			}
 
+			// 构建索引并保存
 			pos := &data.LogRecordPos{Fid: id, Offset: offset}
 
-			// 如果是删除的类型就从索引当中删除
-			if read.Type == data.LogRecordDelete {
-				db.index.Delete(read.Key)
+			// 解析 key，拿到事务
+			record, u := parseLogRecord(read.Key)
+
+			if u == nonTransactionSeq {
+				// 非事务操作，直接更新
+				updateIndex(record, read.Type, pos)
 			} else {
-				db.index.Put(read.Key, pos)
+				// 事务中如果读取到完成，再更新到索引
+				if read.Type == data.LogRecordFinish {
+					for _, txnRecord := range transactionRecords[u] {
+						updateIndex(txnRecord.Record.Key, txnRecord.Record.Type, pos)
+					}
+					delete(transactionRecords, u)
+				} else {
+					// 如果读取先暂存在transactionRecord里面
+					read.Key = record
+					transactionRecords[u] = append(transactionRecords[u], &data.TransactionRecord{
+						Record: read,
+						Pos:    pos,
+					})
+				}
 			}
+
+			// 更新序列号
+			if u > currentSeqNo {
+				currentSeqNo = u
+			}
+
 			// 读取之后偏移数据量的长度
 			offset += size
 		}
@@ -121,6 +162,10 @@ func (db *DB) loadIndexFromDataFiles() error {
 			db.activeFiles.WriteOff = offset
 		}
 	}
+
+	// 更新事务序列号
+	db.seqNo = currentSeqNo
+
 	return nil
 }
 

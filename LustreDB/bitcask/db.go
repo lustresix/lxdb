@@ -27,6 +27,9 @@ type DB struct {
 
 	// 内存索引
 	index index.Indexer
+
+	// 事物序列号
+	seqNo uint64
 }
 
 func Open(options Options) (*DB, error) {
@@ -83,12 +86,12 @@ func (db *DB) Delete(key []byte) error {
 
 	// 构造 LogRecord 文件 标记为这个是被删除的数据
 	logRecord := &data.LogRecord{
-		Key:  key,
+		Key:  logRecordKeyWithSeq(key, nonTransactionSeq),
 		Type: data.LogRecordDelete,
 	}
 
 	// 把数据追加写入到文档中
-	_, err := db.appendLogRecord(logRecord)
+	_, err := db.appendLogRecordWithLock(logRecord)
 	if err != nil {
 		return err
 	}
@@ -112,12 +115,12 @@ func (db *DB) Put(key []byte, value []byte) error {
 
 	// 构造 LogRecord 结构体
 	record := &data.LogRecord{
-		Key:   key,
+		Key:   logRecordKeyWithSeq(key, nonTransactionSeq),
 		Value: value,
 		Type:  data.LogRecordNormal,
 	}
 	// 追加写入到当前活跃的数据库中
-	logRecord, err := db.appendLogRecord(record)
+	logRecord, err := db.appendLogRecordWithLock(record)
 	if err != nil {
 		return err
 	}
@@ -177,11 +180,15 @@ func (db *DB) getValue(get *data.LogRecordPos) ([]byte, error) {
 	return read.Value, nil
 }
 
-// 追加写入到当前活跃的文件中
-func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, error) {
+func (db *DB) appendLogRecordWithLock(logRecord *data.LogRecord) (*data.LogRecordPos, error) {
 	db.lo.Lock()
 	defer db.lo.Unlock()
 
+	return db.appendLogRecord(logRecord)
+}
+
+// 追加写入到当前活跃的文件中
+func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, error) {
 	// 判断当前活跃数据文件是否存在
 	// 如果为空则初始化文件
 	if db.activeFiles == nil {

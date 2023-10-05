@@ -14,4 +14,6 @@ var (
 	ErrDataDirectoryCorrupted = errors.New("the database directory maybe corrupted")
 
 	ErrorIncorrectCrc = errors.New("CRC does not pass")
+
+	ErrorOverMaxNumber = errors.New("the context is over the max number")
 )
