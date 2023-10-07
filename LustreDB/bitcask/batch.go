@@ -106,7 +106,7 @@ func (wb *WriteBatch) Commit() error {
 	}
 
 	// 把事务完成的标识加入db中
-	_, err := wb.db.appendLogRecordWithLock(d)
+	_, err := wb.db.appendLogRecord(d)
 	if err != nil {
 		return err
 	}

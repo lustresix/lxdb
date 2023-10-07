@@ -20,15 +20,3 @@ func TestIterator(t *testing.T) {
 	assert.NotNil(t, iterator)
 	t.Log(iterator.Valid())
 }
-
-func destroyDB(db *DB) {
-	if db != nil {
-		if db.activeFiles != nil {
-			_ = db.activeFiles.Close() //todo After implementing the Close method, use the Close method instead
-		}
-		err := os.RemoveAll(db.options.DirPath)
-		if err != nil {
-			panic(err)
-		}
-	}
-}

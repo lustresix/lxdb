@@ -25,6 +25,9 @@ type DB struct {
 	// 旧的数据文件
 	olderFiles map[uint32]*data.DataFile
 
+	// 是否已经关闭
+	closed bool
+
 	// 内存索引
 	index index.Indexer
 
@@ -67,8 +70,26 @@ func Open(options Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.closed = false
 
 	return db, nil
+}
+
+// Close 关闭数据库
+func (db *DB) Close() error {
+	db.lo.Lock()
+	defer db.lo.Unlock()
+
+	if !db.closed {
+		return nil
+	}
+	err := db.activeFiles.Close()
+	if err != nil {
+		return err
+	}
+
+	db.closed = true
+	return nil
 }
 
 // Delete 根据 key 来删除对应的数据
@@ -242,4 +263,9 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 	}
 
 	return pos, nil
+}
+
+func destroyDB(db *DB) {
+	_ = db.Close()
+	_ = os.RemoveAll(db.options.DirPath)
 }
