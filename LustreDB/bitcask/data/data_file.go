@@ -9,7 +9,11 @@ import (
 	"path/filepath"
 )
 
-const DataFileNameSuffix = ".lx"
+const (
+	DataFileNameSuffix = ".lx"
+	HintFileName       = "hint"
+	MergeFileName      = "merge"
+)
 
 // DataFile 数据文件
 type DataFile struct {
@@ -27,8 +31,27 @@ type DataFile struct {
 // OpenDataFile 打开新的数据文件
 func OpenDataFile(dirPath string, fileId uint32) (*DataFile, error) {
 	// 地址/fileId.lx
-	fileName := filepath.Join(dirPath, fmt.Sprintf("%09d", fileId)+DataFileNameSuffix)
+	name := GetDataFileName(dirPath, fileId)
 	// 初始化 IOManager 管理器接口
+	return newDataFile(name, fileId)
+}
+
+func OpenHintFile(dirPath string) (*DataFile, error) {
+	fileName := filepath.Join(dirPath, HintFileName)
+	return newDataFile(fileName, 0)
+}
+
+func OpenMergeFile(dirPath string) (*DataFile, error) {
+	fileName := filepath.Join(dirPath, MergeFileName)
+	return newDataFile(fileName, 0)
+}
+
+func GetDataFileName(dirPath string, fileId uint32) string {
+	fileName := filepath.Join(dirPath, fmt.Sprintf("%09d", fileId)+DataFileNameSuffix)
+	return fileName
+}
+
+func newDataFile(fileName string, fileId uint32) (*DataFile, error) {
 	manager, err := io.NewIOManager(fileName)
 	if err != nil {
 		return nil, err
@@ -96,6 +119,17 @@ func (df *DataFile) Read(offset int64) (*LogRecord, int64, error) {
 		return nil, 0, utils.ErrorIncorrectCrc
 	}
 	return record, recordSize, nil
+}
+
+func (df *DataFile) WriteHintRecord(key []byte, pos *LogRecordPos) error {
+	recordPos := EncodeLogRecordPos(pos)
+	record := &LogRecord{
+		Key:   key,
+		Value: recordPos,
+	}
+
+	logRecord, _ := EncodeLogRecord(record)
+	return df.Write(logRecord)
 }
 
 func (df *DataFile) Write(buf []byte) error {

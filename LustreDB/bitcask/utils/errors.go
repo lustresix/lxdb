@@ -16,4 +16,6 @@ var (
 	ErrorIncorrectCrc = errors.New("CRC does not pass")
 
 	ErrorOverMaxNumber = errors.New("the context is over the max number")
+
+	ErrorMergeIsProgress = errors.New("the process is in merge,please wait for a moment")
 )

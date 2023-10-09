@@ -33,6 +33,9 @@ type DB struct {
 
 	// 事物序列号
 	seqNo uint64
+
+	// 是否在merge
+	merged bool
 }
 
 func Open(options Options) (*DB, error) {
@@ -57,6 +60,17 @@ func Open(options Options) (*DB, error) {
 		lo:         new(sync.RWMutex),
 		olderFiles: make(map[uint32]*data.DataFile),
 		index:      index.NewIndexer(options.IndexType),
+	}
+
+	err = db.loadMergeFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	// 是否有索引文件，如果有从索引文件中加载
+	err = db.loadIndexFromHintFile()
+	if err != nil {
+		return nil, err
 	}
 
 	// 加载数据文件

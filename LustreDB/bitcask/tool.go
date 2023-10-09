@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -101,10 +102,25 @@ func (db *DB) loadIndexFromDataFiles() error {
 	// 暂存事务的数据
 	transactionRecords := make(map[uint64][]*data.TransactionRecord)
 	var currentSeqNo = nonTransactionSeq
+	hasMerged, mergeID := false, 0
+	join := filepath.Join(db.options.DirPath, data.MergeFileName)
+	_, err := os.Stat(join)
+	if err == nil {
+		fid, err := db.NoMergeFinishedFid(join)
+		if err != nil {
+			return err
+		}
+		hasMerged = true
+		mergeID = int(fid)
+	}
 
 	// 遍历所有文件id，处理文件中的记录
 	for i, fileId := range db.fileIds {
 		var id = uint32(fileId)
+		// 如果比merge的id更小说明还没有在hint文件中
+		if hasMerged && mergeID < fileId {
+			continue
+		}
 		var dataFile *data.DataFile
 		if id == db.activeFiles.FileId {
 			dataFile = db.activeFiles
