@@ -5,8 +5,12 @@ import (
 	"LustreDB/bitcask/index"
 	"LustreDB/bitcask/utils"
 	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 )
+
+const seqNoKey = "seq.no"
 
 // DB bitcask 存储引擎实例
 type DB struct {
@@ -36,6 +40,12 @@ type DB struct {
 
 	// 是否在merge
 	merged bool
+
+	// 是否存在seqNo文件
+	seqNoFileExists bool
+
+	// 是否初始化
+	isInitial bool
 }
 
 func Open(options Options) (*DB, error) {
@@ -45,13 +55,24 @@ func Open(options Options) (*DB, error) {
 		return nil, err
 	}
 
+	var isInitial bool
+
 	// 目录是否存在，如果目录不存在则创建
 	_, err = os.Stat(options.DirPath)
 	if os.IsNotExist(err) {
+		isInitial = true
 		err := os.MkdirAll(options.DirPath, os.ModePerm)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	dir, err := os.ReadDir(options.DirPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(dir) == 0 {
+		isInitial = true
 	}
 
 	// 初始化 DB 实例结构体
@@ -59,16 +80,11 @@ func Open(options Options) (*DB, error) {
 		options:    options,
 		lo:         new(sync.RWMutex),
 		olderFiles: make(map[uint32]*data.DataFile),
-		index:      index.NewIndexer(options.IndexType),
+		index:      index.NewIndexer(options.IndexType, options.DirPath, options.SyncWrites),
+		isInitial:  isInitial,
 	}
 
 	err = db.loadMergeFiles()
-	if err != nil {
-		return nil, err
-	}
-
-	// 是否有索引文件，如果有从索引文件中加载
-	err = db.loadIndexFromHintFile()
 	if err != nil {
 		return nil, err
 	}
@@ -79,11 +95,34 @@ func Open(options Options) (*DB, error) {
 		return nil, err
 	}
 
-	// 从数据文件中加载索引
-	err = db.loadIndexFromDataFiles()
-	if err != nil {
-		return nil, err
+	if options.IndexType != BPtree {
+		// 是否有索引文件，如果有从索引文件中加载
+		err = db.loadIndexFromHintFile()
+		if err != nil {
+			return nil, err
+		}
+
+		// 从数据文件中加载索引
+		err = db.loadIndexFromDataFiles()
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	if options.IndexType == BPtree {
+		err := db.loadSeqNo()
+		if err != nil {
+			return nil, err
+		}
+		if db.activeFiles != nil {
+			size, err := db.activeFiles.IOManager.Size()
+			if err != nil {
+				return nil, err
+			}
+			db.activeFiles.WriteOff = size
+		}
+	}
+
 	db.closed = false
 
 	return db, nil
@@ -91,19 +130,58 @@ func Open(options Options) (*DB, error) {
 
 // Close 关闭数据库
 func (db *DB) Close() error {
+	if db.activeFiles == nil {
+		return nil
+	}
 	db.lo.Lock()
 	defer db.lo.Unlock()
+	err := db.index.Close()
+	if err != nil {
+		return err
+	}
+
+	// 保存当前事务序列号
+	file, err := data.OpenSeqNoFile(db.options.DirPath)
+	if err != nil {
+		return err
+	}
+	record := &data.LogRecord{
+		Key:   []byte(seqNoKey),
+		Value: []byte(strconv.FormatUint(db.seqNo, 10)),
+	}
+	logRecord, _ := data.EncodeLogRecord(record)
+
+	err = file.Write(logRecord)
+	if err != nil {
+		return err
+	}
+
+	err = file.Sync()
+	if err != nil {
+		return err
+	}
 
 	if !db.closed {
 		return nil
 	}
-	err := db.activeFiles.Close()
+
+	err = db.activeFiles.Close()
 	if err != nil {
 		return err
 	}
 
 	db.closed = true
 	return nil
+}
+
+// Sync 持久化数据文件
+func (db *DB) Sync() error {
+	if db.activeFiles == nil {
+		return nil
+	}
+	db.lo.Lock()
+	defer db.lo.Unlock()
+	return db.activeFiles.Sync()
 }
 
 // Delete 根据 key 来删除对应的数据
@@ -187,6 +265,38 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	}
 	value, err := db.getValue(get)
 	return value, err
+}
+
+// ListKeys 获取数据库中所有的key
+func (db *DB) ListKeys() [][]byte {
+	iterator := db.index.Iterator(false)
+	defer iterator.Close()
+	keys := make([][]byte, db.index.Size())
+	var idx int
+	for iterator.Rewind(); iterator.Valid(); iterator.Next() {
+		keys[idx] = iterator.Key()
+		idx++
+	}
+	return keys
+}
+
+// Fold 获取所有的数据，并执行用户指定的操作，函数返回 false 时停止遍历
+func (db *DB) Fold(fn func(key, value []byte) bool) error {
+	db.lo.RLock()
+	defer db.lo.RUnlock()
+
+	iterator := db.index.Iterator(false)
+	defer iterator.Close()
+	for iterator.Rewind(); iterator.Valid(); iterator.Next() {
+		value, err := db.getValue(iterator.Value())
+		if err != nil {
+			return err
+		}
+		if !fn(iterator.Key(), value) {
+			break
+		}
+	}
+	return nil
 }
 
 func (db *DB) getValue(get *data.LogRecordPos) ([]byte, error) {
@@ -282,4 +392,32 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 func destroyDB(db *DB) {
 	_ = db.Close()
 	_ = os.RemoveAll(db.options.DirPath)
+}
+
+func (db *DB) loadSeqNo() error {
+	fileName := filepath.Join(db.options.DirPath, data.SeqNoName)
+	_, err := os.Stat(fileName)
+	if os.IsNotExist(err) {
+		return err
+	}
+
+	seqNoFile, err := data.OpenSeqNoFile(db.options.DirPath)
+	if err != nil {
+		return err
+	}
+
+	read, _, err := seqNoFile.Read(0)
+	if err != nil {
+		return err
+	}
+
+	atoi, err := strconv.ParseUint(string(read.Value), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	db.seqNo = atoi
+	db.seqNoFileExists = true
+
+	return os.Remove(fileName)
 }

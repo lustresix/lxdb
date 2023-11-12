@@ -13,6 +13,7 @@ const (
 	DataFileNameSuffix = ".lx"
 	HintFileName       = "hint"
 	MergeFileName      = "merge"
+	SeqNoName          = "seq-no"
 )
 
 // DataFile 数据文件
@@ -43,6 +44,11 @@ func OpenHintFile(dirPath string) (*DataFile, error) {
 
 func OpenMergeFile(dirPath string) (*DataFile, error) {
 	fileName := filepath.Join(dirPath, MergeFileName)
+	return newDataFile(fileName, 0)
+}
+
+func OpenSeqNoFile(dirPath string) (*DataFile, error) {
+	fileName := filepath.Join(dirPath, SeqNoName)
 	return newDataFile(fileName, 0)
 }
 

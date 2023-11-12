@@ -14,6 +14,8 @@ const (
 
 	// ART 自适应基数树
 	ART
+
+	BPtree
 )
 
 // Indexer 内存设计，抽象索引接口，包括 PUT,GET,DELETE方法
@@ -30,15 +32,21 @@ type Indexer interface {
 
 	// Iterator 返回迭代器
 	Iterator(reverse bool) Iterator
+
+	// Close 关闭迭代器
+	Close() error
+
+	Size() int
 }
 
-func NewIndexer(indexType IndexerType) Indexer {
+func NewIndexer(indexType IndexerType, dir string, syncWrite bool) Indexer {
 	switch indexType {
 	case Btree:
 		return NewBtree()
 	case ART:
-		// TODO:ART
-		return nil
+		return NewArt()
+	case BPtree:
+		return NewBPTree(dir, syncWrite)
 	default:
 		panic("unsupported index type")
 	}

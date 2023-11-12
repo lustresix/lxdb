@@ -36,10 +36,12 @@ type WriteBatchOptions struct {
 	SyncWrite bool
 }
 
-type IndexerType int8
-
 const (
-	BTree IndexerType = iota + 1
+	BTree index.IndexerType = iota + 1
+
+	ART
+
+	BPtree
 )
 
 var DefaultOptions = Options{
@@ -47,7 +49,7 @@ var DefaultOptions = Options{
 	// 256MB
 	DataFileSize: 256 * 1024 * 1024,
 	SyncWrites:   false,
-	IndexType:    index.Btree,
+	IndexType:    BTree,
 }
 
 var DefaultIteratorOption = IteratorOptions{

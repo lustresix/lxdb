@@ -17,6 +17,10 @@ type BTree struct {
 	lock *sync.RWMutex
 }
 
+func (bt *BTree) Close() error {
+	return nil
+}
+
 // NewBtree 初始化 BTree 索引
 // initializes BTree index
 func NewBtree() *BTree {
@@ -66,6 +70,11 @@ func (bt *BTree) Delete(key []byte) bool {
 		return true
 	}
 	return false
+}
+
+func (bt *BTree) Size() int {
+	size := bt.tree.Len()
+	return size
 }
 
 func (bt *BTree) Iterator(reverse bool) Iterator {
@@ -134,7 +143,7 @@ func (bti *btreeIterator) Next() {
 
 // Valid 是否有效，即是否已经遍历完了所有的 key，用于退出遍历
 func (bti *btreeIterator) Valid() bool {
-	return bti.currIndex <= len(bti.values)
+	return bti.currIndex < len(bti.values)
 }
 
 // Key 当前遍历位置的 Key 数据

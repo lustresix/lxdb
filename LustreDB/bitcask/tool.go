@@ -33,7 +33,6 @@ func (db *DB) setActiveData() error {
 
 // 从磁盘中加载数据文件
 func (db *DB) loadDataFiles() error {
-
 	dir, err := os.ReadDir(db.options.DirPath)
 	if err != nil {
 		return err
