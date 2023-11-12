@@ -156,7 +156,7 @@ func (db *DB) Merge() error {
 func (db *DB) getMergePath() string {
 	dir := path.Dir(path.Clean(db.options.DirPath))
 	base := path.Base(db.options.DirPath)
-	return filepath.Join(dir, base+mergeDir)
+	return path.Join(dir, base+mergeDir)
 }
 
 func (db *DB) loadMergeFiles() error {
