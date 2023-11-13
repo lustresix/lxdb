@@ -389,7 +389,7 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 	return pos, nil
 }
 
-func destroyDB(db *DB) {
+func DestroyDB(db *DB) {
 	_ = db.Close()
 	_ = os.RemoveAll(db.options.DirPath)
 }

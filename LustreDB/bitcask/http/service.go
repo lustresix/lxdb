@@ -21,3 +21,22 @@ func getValue(data []string) ([]string, error) {
 	}
 	return values, nil
 }
+
+func deleteData(data []string) error {
+	for _, key := range data {
+		err := db.Delete([]byte(key))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ListKey() []string {
+	keys := db.ListKeys()
+	var key []string
+	for _, i := range keys {
+		key = append(key, string(i))
+	}
+	return key
+}

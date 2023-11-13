@@ -14,7 +14,7 @@ func TestDB_NewWriteBatch(t *testing.T) {
 	opts.DirPath = dir
 	opts.DataFileSize = 64 * 1024 * 1024
 	db, err := Open(opts)
-	defer destroyDB(db)
+	defer DestroyDB(db)
 	assert.Nil(t, err)
 	assert.NotNil(t, db)
 
@@ -56,7 +56,7 @@ func TestDB_NewWriteBatch1(t *testing.T) {
 	dir, _ := os.MkdirTemp("", "bitcask-go-batch-2")
 	opts.DirPath = dir
 	db, err := Open(opts)
-	defer destroyDB(db)
+	defer DestroyDB(db)
 	assert.Nil(t, err)
 	assert.NotNil(t, db)
 

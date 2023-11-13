@@ -12,7 +12,7 @@ func TestIterator(t *testing.T) {
 	opts.DirPath = dir
 	opts.DataFileSize = 64 * 1024 * 1024
 	open, err := Open(opts)
-	defer destroyDB(open)
+	defer DestroyDB(open)
 	assert.Nil(t, err)
 	assert.NotNil(t, open)
 
