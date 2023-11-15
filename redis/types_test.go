@@ -1,8 +1,8 @@
 package redis
 
 import (
-	"LustreDB"
-	"LustreDB/utils"
+	LustreDB "github.com/lustresix/lxdb"
+	"github.com/lustresix/lxdb/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"

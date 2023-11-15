@@ -1,8 +1,9 @@
 package main
 
 import (
-	lxrd "LustreDB/redis"
-	"LustreDB/utils"
+	lxrd "github.com/lustresix/lxdb/redis"
+	"github.com/lustresix/lxdb/utils"
+
 	"errors"
 	"fmt"
 	"github.com/tidwall/redcon"

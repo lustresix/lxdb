@@ -28,4 +28,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	batchOptions := LustreDB.DefaultWriteBatchOptions
+	wb := open.NewWriteBatch(batchOptions)
+	_ = wb.Put([]byte("hello1"), []byte("world1"))
+	_ = wb.Delete([]byte("hello1"))
+	err = wb.Commit()
+	if err != nil {
+		return
+	}
 }
