@@ -1,5 +1,4 @@
-module LustreDB
-
+module github.com/lustresix/lxdb
 go 1.19
 
 require (

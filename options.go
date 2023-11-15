@@ -49,7 +49,7 @@ var DefaultOptions = Options{
 	// 256MB
 	DataFileSize: 256 * 1024 * 1024,
 	SyncWrites:   false,
-	IndexType:    BTree,
+	IndexType:    ART,
 }
 
 var DefaultIteratorOption = IteratorOptions{
