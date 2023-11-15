@@ -1,9 +1,9 @@
 package data
 
 import (
-	"LustreDB/io"
-	"LustreDB/utils"
 	"fmt"
+	"github.com/lustresix/lxdb/io"
+	"github.com/lustresix/lxdb/utils"
 	"hash/crc32"
 	io2 "io"
 	"path/filepath"

@@ -1,8 +1,8 @@
 package index
 
 import (
-	"LustreDB/data"
 	"bytes"
+	"github.com/lustresix/lxdb/data"
 	goart "github.com/plar/go-adaptive-radix-tree"
 	"sort"
 	"sync"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"LustreDB"
 	"fmt"
+	LustreDB "github.com/lustresix/lxdb"
 )
 
 func main() {

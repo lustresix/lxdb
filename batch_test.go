@@ -1,7 +1,7 @@
 package LustreDB
 
 import (
-	utils2 "LustreDB/utils"
+	"github.com/lustresix/lxdb/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -21,31 +21,31 @@ func TestDB_NewWriteBatch(t *testing.T) {
 	// 写数据不提交
 	wb := db.NewWriteBatch(DefaultWriteBatchOptions)
 
-	err = wb.Put(utils2.GetTestKey(1), utils2.RandomValue(10))
+	err = wb.Put(utils.GetTestKey(1), utils.RandomValue(10))
 	assert.Nil(t, err)
 
-	err = wb.Delete(utils2.GetTestKey(2))
+	err = wb.Delete(utils.GetTestKey(2))
 	assert.Nil(t, err)
 
-	_, err = db.Get(utils2.GetTestKey(1))
-	assert.Equal(t, utils2.ErrKeyNotFound, err)
+	_, err = db.Get(utils.GetTestKey(1))
+	assert.Equal(t, utils.ErrKeyNotFound, err)
 
 	// 正常提交
 	err = wb.Commit()
 	assert.Nil(t, err)
 
-	bytes, err := db.Get(utils2.GetTestKey(1))
+	bytes, err := db.Get(utils.GetTestKey(1))
 	assert.NotNil(t, bytes)
 	assert.Nil(t, err)
 
 	// 删除有效数据
 	wb2 := db.NewWriteBatch(DefaultWriteBatchOptions)
-	err = wb2.Delete(utils2.GetTestKey(1))
+	err = wb2.Delete(utils.GetTestKey(1))
 	assert.Nil(t, err)
 	err = wb2.Commit()
 	assert.Nil(t, err)
 
-	bytes1, err := db.Get(utils2.GetTestKey(1))
+	bytes1, err := db.Get(utils.GetTestKey(1))
 	t.Log(bytes1)
 	t.Log(err)
 }
@@ -60,14 +60,14 @@ func TestDB_NewWriteBatch1(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, db)
 
-	err = db.Put(utils2.GetTestKey(1), utils2.RandomValue(10))
+	err = db.Put(utils.GetTestKey(1), utils.RandomValue(10))
 	assert.Nil(t, err)
 
 	wb := db.NewWriteBatch(DefaultWriteBatchOptions)
-	err = wb.Put(utils2.GetTestKey(2), utils2.RandomValue(10))
+	err = wb.Put(utils.GetTestKey(2), utils.RandomValue(10))
 	assert.Nil(t, err)
 
-	err = wb.Delete(utils2.GetTestKey(1))
+	err = wb.Delete(utils.GetTestKey(1))
 	assert.Nil(t, err)
 
 	err = wb.Commit()
@@ -80,7 +80,7 @@ func TestDB_NewWriteBatch1(t *testing.T) {
 	db, err = Open(opts)
 	assert.Nil(t, err)
 
-	get, err := db.Get(utils2.GetTestKey(1))
+	get, err := db.Get(utils.GetTestKey(1))
 	t.Log(get)
 	t.Log(err)
 }

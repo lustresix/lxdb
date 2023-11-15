@@ -1,7 +1,7 @@
 package index
 
 import (
-	"LustreDB/data"
+	"github.com/lustresix/lxdb/data"
 	"go.etcd.io/bbolt"
 	"path/filepath"
 )

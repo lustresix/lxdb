@@ -1,9 +1,9 @@
 package LustreDB
 
 import (
-	data2 "LustreDB/data"
-	"LustreDB/index"
-	"LustreDB/utils"
+	"github.com/lustresix/lxdb/data"
+	"github.com/lustresix/lxdb/index"
+	"github.com/lustresix/lxdb/utils"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,10 +24,10 @@ type DB struct {
 	fileIds []int
 
 	// 活跃文件
-	activeFiles *data2.DataFile
+	activeFiles *data.DataFile
 
 	// 旧的数据文件
-	olderFiles map[uint32]*data2.DataFile
+	olderFiles map[uint32]*data.DataFile
 
 	// 内存索引
 	index index.Indexer
@@ -76,7 +76,7 @@ func Open(options Options) (*DB, error) {
 	db := &DB{
 		options:    options,
 		lo:         new(sync.RWMutex),
-		olderFiles: make(map[uint32]*data2.DataFile),
+		olderFiles: make(map[uint32]*data.DataFile),
 		index:      index.NewIndexer(options.IndexType, options.DirPath, options.SyncWrites),
 		isInitial:  isInitial,
 	}
@@ -136,15 +136,15 @@ func (db *DB) Close() error {
 	}
 
 	// 保存当前事务序列号
-	file, err := data2.OpenSeqNoFile(db.options.DirPath)
+	file, err := data.OpenSeqNoFile(db.options.DirPath)
 	if err != nil {
 		return err
 	}
-	record := &data2.LogRecord{
+	record := &data.LogRecord{
 		Key:   []byte(seqNoKey),
 		Value: []byte(strconv.FormatUint(db.seqNo, 10)),
 	}
-	logRecord, _ := data2.EncodeLogRecord(record)
+	logRecord, _ := data.EncodeLogRecord(record)
 
 	err = file.Write(logRecord)
 	if err != nil {
@@ -188,9 +188,9 @@ func (db *DB) Delete(key []byte) error {
 	}
 
 	// 构造 LogRecord 文件 标记为这个是被删除的数据
-	logRecord := &data2.LogRecord{
+	logRecord := &data.LogRecord{
 		Key:  logRecordKeyWithSeq(key, nonTransactionSeq),
-		Type: data2.LogRecordDelete,
+		Type: data.LogRecordDelete,
 	}
 
 	// 把数据追加写入到文档中
@@ -217,10 +217,10 @@ func (db *DB) Put(key []byte, value []byte) error {
 	}
 
 	// 构造 LogRecord 结构体
-	record := &data2.LogRecord{
+	record := &data.LogRecord{
 		Key:   logRecordKeyWithSeq(key, nonTransactionSeq),
 		Value: value,
-		Type:  data2.LogRecordNormal,
+		Type:  data.LogRecordNormal,
 	}
 	// 追加写入到当前活跃的数据库中
 	logRecord, err := db.appendLogRecordWithLock(record)
@@ -289,9 +289,9 @@ func (db *DB) Fold(fn func(key, value []byte) bool) error {
 	return nil
 }
 
-func (db *DB) getValue(get *data2.LogRecordPos) ([]byte, error) {
+func (db *DB) getValue(get *data.LogRecordPos) ([]byte, error) {
 	// 根据文件的 id 找到数据文件,如果活跃文件里没有，就从旧的数据文件里面找
-	var dataFile *data2.DataFile
+	var dataFile *data.DataFile
 	if db.activeFiles.FileId == get.Fid {
 		dataFile = db.activeFiles
 	} else {
@@ -309,13 +309,13 @@ func (db *DB) getValue(get *data2.LogRecordPos) ([]byte, error) {
 	}
 
 	// 判断此条数据是否有被删除
-	if read.Type == data2.LogRecordDelete {
+	if read.Type == data.LogRecordDelete {
 		return nil, utils.ErrDataFileNotFound
 	}
 	return read.Value, nil
 }
 
-func (db *DB) appendLogRecordWithLock(logRecord *data2.LogRecord) (*data2.LogRecordPos, error) {
+func (db *DB) appendLogRecordWithLock(logRecord *data.LogRecord) (*data.LogRecordPos, error) {
 	db.lo.Lock()
 	defer db.lo.Unlock()
 
@@ -323,7 +323,7 @@ func (db *DB) appendLogRecordWithLock(logRecord *data2.LogRecord) (*data2.LogRec
 }
 
 // 追加写入到当前活跃的文件中
-func (db *DB) appendLogRecord(logRecord *data2.LogRecord) (*data2.LogRecordPos, error) {
+func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, error) {
 	// 判断当前活跃数据文件是否存在
 	// 如果为空则初始化文件
 	if db.activeFiles == nil {
@@ -334,7 +334,7 @@ func (db *DB) appendLogRecord(logRecord *data2.LogRecord) (*data2.LogRecordPos, 
 	}
 
 	// 写入数据编码
-	record, size := data2.EncodeLogRecord(logRecord)
+	record, size := data.EncodeLogRecord(logRecord)
 
 	// 如果这个数据满了那么将当前的转换为旧的数据文件，创建新的数据文件
 	if db.activeFiles.WriteOff+size > db.options.DataFileSize {
@@ -371,7 +371,7 @@ func (db *DB) appendLogRecord(logRecord *data2.LogRecord) (*data2.LogRecordPos, 
 		}
 	}
 
-	pos := &data2.LogRecordPos{
+	pos := &data.LogRecordPos{
 		Fid:    db.activeFiles.FileId,
 		Offset: off,
 	}
@@ -385,13 +385,13 @@ func DestroyDB(db *DB) {
 }
 
 func (db *DB) loadSeqNo() error {
-	fileName := filepath.Join(db.options.DirPath, data2.SeqNoName)
+	fileName := filepath.Join(db.options.DirPath, data.SeqNoName)
 	_, err := os.Stat(fileName)
 	if os.IsNotExist(err) {
 		return err
 	}
 
-	seqNoFile, err := data2.OpenSeqNoFile(db.options.DirPath)
+	seqNoFile, err := data.OpenSeqNoFile(db.options.DirPath)
 	if err != nil {
 		return err
 	}

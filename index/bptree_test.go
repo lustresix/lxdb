@@ -1,7 +1,7 @@
 package index
 
 import (
-	"LustreDB/data"
+	"github.com/lustresix/lxdb/data"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"

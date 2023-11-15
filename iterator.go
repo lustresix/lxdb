@@ -1,8 +1,8 @@
 package LustreDB
 
 import (
-	"LustreDB/index"
 	"bytes"
+	"github.com/lustresix/lxdb/index"
 )
 
 type Iterator struct {

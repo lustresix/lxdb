@@ -1,8 +1,8 @@
 package LustreDB
 
 import (
-	data2 "LustreDB/data"
-	"LustreDB/utils"
+	"github.com/lustresix/lxdb/data"
+	"github.com/lustresix/lxdb/utils"
 	"io"
 	"os"
 	"path"
@@ -50,7 +50,7 @@ func (db *DB) Merge() error {
 	noMergedFile := db.activeFiles.FileId
 
 	// 取出所以需要的 merge 文件
-	var mergeFile []*data2.DataFile
+	var mergeFile []*data.DataFile
 	for _, file := range db.olderFiles {
 		mergeFile = append(mergeFile, file)
 	}
@@ -85,7 +85,7 @@ func (db *DB) Merge() error {
 		return err
 	}
 
-	file, err := data2.OpenHintFile(mergePath)
+	file, err := data.OpenHintFile(mergePath)
 	if err != nil {
 		return err
 	}
@@ -130,15 +130,15 @@ func (db *DB) Merge() error {
 		return err
 	}
 
-	openMergeFile, err := data2.OpenMergeFile(mergePath)
+	openMergeFile, err := data.OpenMergeFile(mergePath)
 	if err != nil {
 		return err
 	}
-	mergeFinRecord := &data2.LogRecord{
+	mergeFinRecord := &data.LogRecord{
 		Key:   []byte(mergeFinish),
 		Value: []byte(strconv.Itoa(int(noMergedFile))),
 	}
-	record, _ := data2.EncodeLogRecord(mergeFinRecord)
+	record, _ := data.EncodeLogRecord(mergeFinRecord)
 	err = openMergeFile.Write(record)
 	if err != nil {
 		return err
@@ -179,10 +179,10 @@ func (db *DB) loadMergeFiles() error {
 	var mergeFinished bool
 	var mergeFileName []string
 	for _, i := range dir {
-		if i.Name() == data2.MergeFileName {
+		if i.Name() == data.MergeFileName {
 			mergeFinished = true
 		}
-		if i.Name() == data2.SeqNoName {
+		if i.Name() == data.SeqNoName {
 			continue
 		}
 		mergeFileName = append(mergeFileName, i.Name())
@@ -201,7 +201,7 @@ func (db *DB) loadMergeFiles() error {
 	// 删除旧的数据文件，就是id小于没有merge的
 	var fileId uint32 = 0
 	for fileId < fid {
-		name := data2.GetDataFileName(db.options.DirPath, fileId)
+		name := data.GetDataFileName(db.options.DirPath, fileId)
 		_, err := os.Stat(name)
 		if err == nil {
 			err = os.Remove(name)
@@ -225,7 +225,7 @@ func (db *DB) loadMergeFiles() error {
 }
 
 func (db *DB) NoMergeFinishedFid(pathDir string) (uint32, error) {
-	file, err := data2.OpenMergeFile(pathDir)
+	file, err := data.OpenMergeFile(pathDir)
 	if err != nil {
 		return 0, err
 	}
@@ -241,13 +241,13 @@ func (db *DB) NoMergeFinishedFid(pathDir string) (uint32, error) {
 }
 
 func (db *DB) loadIndexFromHintFile() error {
-	join := filepath.Join(db.options.DirPath, data2.HintFileName)
+	join := filepath.Join(db.options.DirPath, data.HintFileName)
 	_, err := os.Stat(join)
 	if os.IsNotExist(err) {
 		return nil
 	}
 
-	file, err := data2.OpenHintFile(db.options.DirPath)
+	file, err := data.OpenHintFile(db.options.DirPath)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func (db *DB) loadIndexFromHintFile() error {
 		}
 		offset += i
 
-		pos := data2.DecodeLogRecordPos(read.Value)
+		pos := data.DecodeLogRecordPos(read.Value)
 		db.index.Put(read.Key, pos)
 	}
 	return nil

@@ -1,7 +1,7 @@
 package LustreDB
 
 import (
-	"LustreDB/utils"
+	"github.com/lustresix/lxdb/utils"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

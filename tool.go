@@ -1,9 +1,9 @@
 package LustreDB
 
 import (
-	data2 "LustreDB/data"
-	"LustreDB/utils"
 	"errors"
+	"github.com/lustresix/lxdb/data"
+	"github.com/lustresix/lxdb/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,7 +22,7 @@ func (db *DB) setActiveData() error {
 	}
 
 	// 打开新的数据文件
-	file, err := data2.OpenDataFile(db.options.DirPath, initialFileId)
+	file, err := data.OpenDataFile(db.options.DirPath, initialFileId)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (db *DB) loadDataFiles() error {
 	var fileIds []int
 	// 遍历目录中的文件，找到所有以 .data 结尾的文件
 	for _, entry := range dir {
-		if strings.HasSuffix(entry.Name(), data2.DataFileNameSuffix) {
+		if strings.HasSuffix(entry.Name(), data.DataFileNameSuffix) {
 			// 自动生成的数据是比如说 0001.lx
 			// 切割后取 0001 为自动生成的文件名
 			// 如果这个已经不是数字了，那么就判定为文件被损坏
@@ -60,7 +60,7 @@ func (db *DB) loadDataFiles() error {
 
 	// 遍历每个文件 id， 打开对应的数据文件
 	for i, fid := range fileIds {
-		file, err := data2.OpenDataFile(db.options.DirPath, uint32(fid))
+		file, err := data.OpenDataFile(db.options.DirPath, uint32(fid))
 		if err != nil {
 			return err
 		}
@@ -84,10 +84,10 @@ func (db *DB) loadIndexFromDataFiles() error {
 		return nil
 	}
 
-	updateIndex := func(key []byte, typ data2.LogRecordType, pos *data2.LogRecordPos) {
+	updateIndex := func(key []byte, typ data.LogRecordType, pos *data.LogRecordPos) {
 		var ok bool
 		// 如果是删除的类型就从索引当中删除
-		if typ == data2.LogRecordDelete {
+		if typ == data.LogRecordDelete {
 			ok = db.index.Delete(key)
 		} else {
 			ok = db.index.Put(key, pos)
@@ -99,10 +99,10 @@ func (db *DB) loadIndexFromDataFiles() error {
 	}
 
 	// 暂存事务的数据
-	transactionRecords := make(map[uint64][]*data2.TransactionRecord)
+	transactionRecords := make(map[uint64][]*data.TransactionRecord)
 	var currentSeqNo = nonTransactionSeq
 	hasMerged, mergeID := false, 0
-	join := filepath.Join(db.options.DirPath, data2.MergeFileName)
+	join := filepath.Join(db.options.DirPath, data.MergeFileName)
 	_, err := os.Stat(join)
 	if err == nil {
 		fid, err := db.NoMergeFinishedFid(join)
@@ -120,7 +120,7 @@ func (db *DB) loadIndexFromDataFiles() error {
 		if hasMerged && mergeID < fileId {
 			continue
 		}
-		var dataFile *data2.DataFile
+		var dataFile *data.DataFile
 		if id == db.activeFiles.FileId {
 			dataFile = db.activeFiles
 		} else {
@@ -138,7 +138,7 @@ func (db *DB) loadIndexFromDataFiles() error {
 			}
 
 			// 构建索引并保存
-			pos := &data2.LogRecordPos{Fid: id, Offset: offset}
+			pos := &data.LogRecordPos{Fid: id, Offset: offset}
 
 			// 解析 key，拿到事务
 			record, u := parseLogRecord(read.Key)
@@ -148,7 +148,7 @@ func (db *DB) loadIndexFromDataFiles() error {
 				updateIndex(record, read.Type, pos)
 			} else {
 				// 事务中如果读取到完成，再更新到索引
-				if read.Type == data2.LogRecordFinish {
+				if read.Type == data.LogRecordFinish {
 					for _, txnRecord := range transactionRecords[u] {
 						updateIndex(txnRecord.Record.Key, txnRecord.Record.Type, pos)
 					}
@@ -156,7 +156,7 @@ func (db *DB) loadIndexFromDataFiles() error {
 				} else {
 					// 如果读取先暂存在transactionRecord里面
 					read.Key = record
-					transactionRecords[u] = append(transactionRecords[u], &data2.TransactionRecord{
+					transactionRecords[u] = append(transactionRecords[u], &data.TransactionRecord{
 						Record: read,
 						Pos:    pos,
 					})

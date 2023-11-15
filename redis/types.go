@@ -1,10 +1,10 @@
 package redis
 
 import (
-	"LustreDB"
-	"LustreDB/utils"
 	"encoding/binary"
 	"errors"
+	LustreDB "github.com/lustresix/lxdb"
+	"github.com/lustresix/lxdb/utils"
 	"time"
 )
 

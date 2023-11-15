@@ -1,9 +1,9 @@
 package index
 
 import (
-	"LustreDB/data"
 	"bytes"
 	"github.com/google/btree"
+	"github.com/lustresix/lxdb/data"
 	"sort"
 	"sync"
 )

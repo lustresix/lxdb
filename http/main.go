@@ -1,9 +1,9 @@
 package main
 
 import (
-	"LustreDB"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	LustreDB "github.com/lustresix/lxdb"
 	"os"
 )
 

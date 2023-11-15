@@ -1,7 +1,7 @@
 package LustreDB
 
 import (
-	"LustreDB/index"
+	"github.com/lustresix/lxdb/index"
 	"os"
 )
 

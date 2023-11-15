@@ -1,9 +1,9 @@
 package LustreDB
 
 import (
-	"LustreDB/data"
-	"LustreDB/utils"
 	"encoding/binary"
+	"github.com/lustresix/lxdb/data"
+	"github.com/lustresix/lxdb/utils"
 	"sync"
 	"sync/atomic"
 )
